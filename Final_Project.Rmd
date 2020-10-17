@@ -1,0 +1,206 @@
+---
+title: "Final_Project"
+author: "R.Riddell"
+date: "17/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(caret)
+
+```
+
+
+```{r}
+red_wine <- read_csv("winequality-red.csv")
+white_wine <- read_csv("winequality-white.csv")
+```
+
+```{r data structure}
+dim(red_wine)
+dim(white_wine)
+
+glimpse(red_wine)
+glimpse(white_wine)
+
+red_wine <- clean_names(red_wine)
+white_wine <- clean_names(white_wine)
+
+
+```
+
+```{r NA's}
+sum(is.na(red_wine))
+sum(is.na(white_wine))
+```
+
+
+```{r}
+ggplot(red_wine, aes(quality)) + 
+  geom_histogram(binwidth = 1, fill = 'navy') +
+  ggtitle("Distribution of Quality (response variable)") +
+  xlab('Quality') +
+  theme_bw()
+  
+ggplot(white_wine, aes(quality)) + 
+  geom_histogram(binwidth = 1, fill = 'navy') +
+  ggtitle("Distribution of Quality (response variable)") +
+  xlab('Quality') +
+  theme_bw()
+```
+
+
+```{r}
+## a function to create boxplots
+gg_boxplot <- function(data, feature){
+  ggplot(data = data, aes(x = quality, y = .data[[feature]], group = quality)) +
+    geom_boxplot() +
+    xlab(paste('Quality')) +
+    theme(legend.position = "none", 
+          axis.text.x = element_text(angle = 45))
+}
+## establish an object that contains the variables that are either catergorical or have less than 20 unique characters
+character_vars <- training %>% 
+  select(where(is_character), where(~length(unique(.x)) <= 20),- score_margin) %>% 
+  names(.)  
+
+## for loop to create all the boxplots
+for (i in seq_along(numeric_vars)) {
+  print(gg_boxplot(white_wine, numeric_vars[i]))
+}
+
+
+```
+
+
+```{r split data}
+set.seed(345)
+
+inTrain_red <- createDataPartition(y = red_wine$quality, p = 0.8, list = F)
+
+red_training <-  red_wine %>% 
+  slice(inTrain_red)
+
+red_testing <-  red_wine %>% 
+  slice(-inTrain_red)
+
+inTrain_white <- createDataPartition(y = white_wine$quality, p = 0.8, list = F)
+
+white_training <-  white_wine %>% 
+  slice(inTrain_white)
+
+white_testing <-  white_wine %>% 
+  slice(-inTrain_white)
+
+```
+
+
+```{r control obj}
+control_obj_regression <- trainControl(method = "cv", 
+                                       number = 5)
+
+
+control_obj_classification <- trainControl(
+  #method = 'repeatedcv',
+  method = "cv",
+  number = 5,
+  #repeats = 5
+  savePredictions = "final",
+  classProbs = T, 
+  summaryFunction = twoClassSummary
+)
+
+```
+
+
+```{r MLM}
+library(MASS)
+set.seed(345)
+
+lm_mdl.red <- train(quality ~ . , data = red_training, 
+                    method = 'lm',
+                    trControl = control_obj_regression,
+                    trace = F)
+lm_mdl.red
+summary(lm_mdl.red)
+# Insignificant values: fixed_acidity,citric_acid,residual_sugar,density
+
+lm_mdl.red.tuned <- train(quality ~ . , data = red_training, 
+                method = 'lmStepAIC',
+                trControl = control_obj_regression,
+                trace = F)
+lm_mdl.red.tuned
+summary(lm_mdl.red.tuned)  
+
+# applying to testing data
+red_testing <-  red_testing %>% 
+  mutate(predictions = predict(lm_mdl.red.tuned, newdata = red_testing))
+
+## calculting the RMSE amd R squared of the linear model on the testing data
+RMSE(pred = red_testing$predictions,
+     obs = red_testing$quality)
+R2(pred = red_testing$predictions,
+   obs = red_testing$quality)
+
+## plotting the predictions against the actual score margin from the testing data
+ggplot(red_testing, aes(predictions, quality)) +
+  geom_point(colour = '#1111FF', alpha=0.7) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+---------------------------------------------------------------------------------------------
+lm_mdl.white <- train(quality ~ . , data = white_training, 
+                      method = 'lm',
+                      trControl = control_obj_regression,
+                      trace = F)
+lm_mdl.white
+summary(lm_mdl.white)
+# Insignificant values: citric_acid,chlorides,total_sulfur_dioxide 
+
+lm_mdl.white.tuned <- train(quality ~ . , data = white_training, 
+                method = 'lmStepAIC',
+                trControl = control_obj_regression,
+                trace = F)
+lm_mdl.white.tuned
+summary(lm_mdl.white.tuned)  
+
+# applying to testing data
+white_testing <-  white_testing %>% 
+  mutate(predictions = predict(lm_mdl.white.tuned, newdata = white_testing))
+
+## calculting the RMSE amd R squared of the linear model on the testing data
+RMSE(pred = white_testing$predictions,
+     obs = white_testing$quality)
+R2(pred = white_testing$predictions,
+   obs = white_testing$quality)
+
+## plotting the predictions against the actual score margin from the testing data
+ggplot(white_testing, aes(predictions, quality)) +
+  geom_point(colour = '#1111FF', alpha=0.7) +
+  geom_abline(colour = "red", linetype = "dashed")
+
+detach("package:MASS")
+```
+
+```{r Penalised Models}
+```
+
+```{r DT}
+```
+
+```{r RF}
+```
+
+```{r KNN}
+```
+
+```{r RF Classification}
+```
+
+```{r RF Boosted}
+```
+
