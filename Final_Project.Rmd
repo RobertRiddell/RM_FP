@@ -106,7 +106,7 @@ white_training <-  white_wine %>%
 white_testing <-  white_wine %>% 
   slice(-inTrain_white)
 
-rm(inTrain_red, inTrain_white, red_wine, white_wine, i, r_numeric_vars, w_numeric_vars, gg_boxplot)
+rm(inTrain_red, inTrain_white, i, r_numeric_vars, w_numeric_vars, gg_boxplot)
 ```
 
 
@@ -493,35 +493,58 @@ resamples(models) %>% summary(metric="RMSE")
 ```{r RF Classification}
 set.seed(345)
 
-red_training$quality <- as.factor(red_training$quality)
-red_testing$quality <- as.factor(red_testing$quality)
+red_wine$quality <- as.factor(red_wine$quality)
+red_wine$quality <- as.factor(red_wine$quality)
 
-white_training$quality <- as.factor(white_training$quality)
-white_testing$quality <- as.factor(white_testing$quality)
+white_wine$quality <- as.factor(white_wine$quality)
+white_wine$quality <- as.factor(white_wine$quality)
 
-red_training <- red_training %>% 
+red_wine <- red_wine %>% 
   mutate(quality = factor(quality, 
                         labels = make.names(levels(quality))))
-red_testing <- red_testing %>% 
+red_wine <- red_wine %>% 
   mutate(quality = factor(quality, 
                         labels = make.names(levels(quality))))
-white_training <- white_training %>% 
+white_wine <- white_wine %>% 
   mutate(quality = factor(quality, 
                         labels = make.names(levels(quality))))
-white_testing <- white_testing %>% 
+white_wine <- white_wine %>% 
   mutate(quality = factor(quality, 
                         labels = make.names(levels(quality))))
 
-red_training %>% 
+
+inTrain_red <- createDataPartition(y = red_wine$quality, p = 0.8, list = F)
+
+red_c_training <-  red_wine %>% 
+  slice(inTrain_red)
+
+red_c_testing <-  red_wine %>% 
+  slice(-inTrain_red)
+
+inTrain_white <- createDataPartition(y = white_wine$quality, p = 0.8, list = F)
+
+white_c_training <-  white_wine %>% 
+  slice(inTrain_white)
+
+white_c_testing <-  white_wine %>% 
+  slice(-inTrain_white)
+
+```
+
+
+```{r RF Classification}
+set.seed(345)
+
+red_c_training %>% 
   group_by(quality) %>% 
   count()
 
-white_training %>% 
+white_c_training %>% 
   group_by(quality) %>% 
   count()
 
 
-red_rfmodel.C <- train(quality ~ . ,
+red_rf_mdl.C <- train(quality ~ . ,
                  data = red_training,
                  method = "rf",
                  trControl = control_obj_classification,
@@ -529,26 +552,26 @@ red_rfmodel.C <- train(quality ~ . ,
                  importance = TRUE, 
 
                  )
-plot(red_rfmodel.C)
-plot(varImp(red_rfmodel.C))
+plot(red_rf_mdl.C)
+plot(varImp(red_rf_mdl.C))
 
 
-confusionMatrix(data = red_rfmodel.C,
-                reference = red_testing$quality)
+confusionMatrix(data = red_rf_mdl.C,
+                reference = red_c_testing$quality)
 
 
-white_rfmodel.C <- train(quality ~ . ,
+white_rf_mdl.C <- train(quality ~ . ,
                  data = white_training,
                  method = "rf",
                  trControl = control_obj_classification,
                  #tuneGrid = tune,
                  importance = TRUE, 
                  )
-plot(white_rfmodel.C)
-plot(varImp(white_rfmodel.C))
+plot(white_rf_mdl.C)
+plot(varImp(white_rf_mdl.C))
 
-confusionMatrix(data = white_rfmodel.C,
-                reference = white_testing$quality)
+confusionMatrix(data = white_rf_mdl.C,
+                reference = white_c_testing$quality)
 
 
 ```
