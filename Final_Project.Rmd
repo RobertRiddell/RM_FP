@@ -65,13 +65,22 @@ gg_boxplot <- function(data, feature){
           axis.text.x = element_text(angle = 45))
 }
 ## establish an object that contains the variables that are either catergorical or have less than 20 unique characters
-character_vars <- training %>% 
-  select(where(is_character), where(~length(unique(.x)) <= 20),- score_margin) %>% 
+r_numeric_vars <- red_wine  %>% 
+  select(where(is_numeric),- quality) %>% 
   names(.)  
 
 ## for loop to create all the boxplots
-for (i in seq_along(numeric_vars)) {
-  print(gg_boxplot(white_wine, numeric_vars[i]))
+for (i in seq_along(r_numeric_vars)) {
+  print(gg_boxplot(red_wine, r_numeric_vars[i]))
+}
+
+w_numeric_vars <- white_wine  %>% 
+  select(where(is_numeric),- quality) %>% 
+  names(.)  
+
+## for loop to create all the boxplots
+for (i in seq_along(w_numeric_vars)) {
+  print(gg_boxplot(white_wine, w_numeric_vars[i]))
 }
 
 
@@ -97,6 +106,7 @@ white_training <-  white_wine %>%
 white_testing <-  white_wine %>% 
   slice(-inTrain_white)
 
+rm(inTrain_red, inTrain_white, red_wine, white_wine, i, r_numeric_vars, w_numeric_vars, gg_boxplot)
 ```
 
 
@@ -111,8 +121,8 @@ control_obj_classification <- trainControl(
   number = 5,
   #repeats = 5
   savePredictions = "final",
-  classProbs = T, 
-  summaryFunction = twoClassSummary
+  classProbs = T,
+  summaryFunction = defaultSummary
 )
 
 ```
@@ -152,7 +162,7 @@ ggplot(red_testing, aes(predictions, quality)) +
   geom_point(colour = '#1111FF', alpha=0.7) +
   geom_abline(colour = "red", linetype = "dashed")
 
----------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------#
 lm_mdl.white <- train(quality ~ . , data = white_training, 
                       method = 'lm',
                       trControl = control_obj_regression,
@@ -187,20 +197,346 @@ detach("package:MASS")
 ```
 
 ```{r Penalised Models}
+set.seed(345)
+lambda <- 10^seq(-3,3,length=100)
+
+# Ridge
+red_ridge <- train(
+  quality~., data=red_training, method="glmnet", 
+  trControl=control_obj_regression,
+  tuneGrid=expand.grid(alpha=0, lambda=lambda)
+)
+
+coef(red_ridge$finalModel, red_ridge$bestTune$lambda)
+predictions <- red_ridge %>% predict(red_testing)
+
+data.frame(
+  RMSE.rid.red = RMSE(predictions, red_testing$quality),
+  Rsquare.rid.red = caret::R2(predictions, red_testing$quality)
+)
+
+#lasso
+set.seed(123)
+red_lasso <- train(
+  quality~., data=red_training, method="glmnet", 
+  trControl=control_obj_regression,
+  tuneGrid=expand.grid(alpha=1, lambda=lambda)
+)
+  
+coef(red_lasso$finalModel, red_lasso$bestTune$lambda)
+predictions <- red_lasso %>% predict(red_testing)
+
+data.frame(
+  RMSE.las.red = RMSE(predictions, red_testing$quality),
+  Rsquare.las.red = caret::R2(predictions, red_testing$quality)
+)
+
+#elastic
+set.seed(123)
+red_elastic <- train(
+  quality~., data=red_training, method="glmnet", 
+  trControl=control_obj_regression,
+)
+
+coef(red_elastic$finalModel, red_elastic$bestTune$lambda)
+predictions <- red_elastic %>% predict(red_testing)
+
+data.frame(
+  RMSE.net.red = RMSE(predictions, red_testing$quality),
+  Rsquare.net.red = caret::R2(predictions, red_testing$quality)
+)
+
+#caret compare all of ridge, lasso, elastic net: 
+#choose best with smallest median or mean RMSE
+models <- list(red_ridge=red_ridge, red_lasso=red_lasso, red_elastic=red_elastic)
+resamples(models) %>% summary(metric="RMSE")
+
+#-------------------------------------------------------------------------------------#
+
+# Ridge
+white_ridge <- train(
+  quality~., data=white_training, method="glmnet", 
+  trControl=control_obj_regression,
+  tuneGrid=expand.grid(alpha=0, lambda=lambda)
+)
+
+coef(white_ridge$finalModel, white_ridge$bestTune$lambda)
+predictions <- white_ridge %>% predict(white_testing)
+
+data.frame(
+  RMSE.rid.white = RMSE(predictions, white_testing$quality),
+  Rsquare.rid.white = caret::R2(predictions, white_testing$quality)
+)
+
+#lasso
+set.seed(123)
+white_lasso <- train(
+  quality~., data=white_training, method="glmnet", 
+  trControl=control_obj_regression,
+  tuneGrid=expand.grid(alpha=1, lambda=lambda)
+)
+  
+coef(white_lasso$finalModel, white_lasso$bestTune$lambda)
+predictions <- white_lasso %>% predict(white_testing)
+
+data.frame(
+  RMSE.las.white = RMSE(predictions, white_testing$quality),
+  Rsquare.las.white = caret::R2(predictions, white_testing$quality)
+)
+
+#elastic
+set.seed(123)
+white_elastic <- train(
+  quality~., data=white_training, method="glmnet", 
+  trControl=control_obj_regression,
+)
+
+coef(white_elastic$finalModel, white_elastic$bestTune$lambda)
+predictions <- white_elastic %>% predict(white_testing)
+
+data.frame(
+  RMSE.net.white = RMSE(predictions, white_testing$quality),
+  Rsquare.net.white = caret::R2(predictions, white_testing$quality)
+)
+
+#caret compare all of ridge, lasso, elastic net: 
+#choose best with smallest median or mean RMSE
+models <- list(red_ridge=red_ridge, red_lasso=red_lasso, red_elastic=red_elastic,
+               white_ridge=white_ridge, white_lasso=white_lasso, white_elastic=white_elastic)
+resamples(models) %>% summary(metric="RMSE")
+
+
 ```
 
 ```{r DT}
+set.seed(345)
+library(rpart)
+library(rpart.plot)
+
+
+red_tree <-  rpart(quality ~.,
+                    data = red_training,
+                    method = "anova")
+rpart.plot(red_tree)
+
+predictions = predict(red_tree, newdata = red_testing)
+
+red_tree.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = red_testing$quality),
+  R2 = R2(pred = predictions,obs = red_testing$quality)
+)
+
+red_tree.tuned <- train(quality ~.,
+                   data = red_training,
+                   method = "rpart",
+                   trControl = control_obj_regression,
+                   tuneGrid = expand.grid(cp = seq(0.001,0.02,0.001)))
+red_tree.tuned
+plot(red_tree.tuned)
+rattle::fancyRpartPlot(red_tree.tuned$finalModel, sub = "")
+plot(varImp(red_tree.tuned))
+
+
+predictions = predict(red_tree.tuned, newdata = red_testing)
+
+red_tree.tuned.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = red_testing$quality),
+  R2 = R2(pred = predictions,obs = red_testing$quality)
+)
+
+rbind(red_tree.metrics, red_tree.tuned.metrics)
+
+#-------------------------------------------------------------------------------------#
+
+white_tree <-  rpart(quality ~.,
+                    data = white_training,
+                    method = "anova")
+rpart.plot(white_tree)
+
+predictions = predict(white_tree, newdata = white_testing)
+
+white_tree.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = white_testing$quality),
+  R2 = R2(pred = predictions,obs = white_testing$quality)
+)
+
+white_tree.tuned <- train(quality ~.,
+                   data = white_training,
+                   method = "rpart",
+                   trControl = control_obj_regression,
+                   tuneGrid = expand.grid(cp = seq(0.001,0.02,0.001)))
+white_tree.tuned
+plot(white_tree.tuned)
+rattle::fancyRpartPlot(white_tree.tuned$finalModel, sub = "")
+plot(varImp(white_tree.tuned))
+
+
+predictions = predict(white_tree.tuned, newdata = white_testing)
+
+white_tree.tuned.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = white_testing$quality),
+  R2 = R2(pred = predictions,obs = white_testing$quality)
+)
+
+rbind(white_tree.metrics, white_tree.tuned.metrics)
+
+models <- list(red_tree.tuned=red_tree.tuned,
+               white_tree.tuned=white_tree.tuned)
+resamples(models) %>% summary(metric="RMSE")
+
+
 ```
 
 ```{r RF}
+set.seed(345)
+red.rf_mdl <- train(quality ~ ., data = red_training,
+                method = 'rf',
+                trControl = control_obj_regression)
+
+red.rf_mdl
+plot(red.rf_mdl)
+plot(varImp(red.rf_mdl))
+
+predictions = predict(red.rf_mdl, newdata = red_testing)
+
+red_rf.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = red_testing$quality),
+  R2 = R2(pred = predictions,obs = red_testing$quality)
+)
+
+#-------------------------------------------------------------------------------------#
+
+white.rf_mdl <- train(quality ~ ., data = white_training,
+                method = 'rf',
+                trControl = control_obj_regression)
+
+white.rf_mdl
+plot(white.rf_mdl)
+plot(varImp(white.rf_mdl))
+
+predictions = predict(white.rf_mdl, newdata = white_testing)
+
+white_rf.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = white_testing$quality),
+  R2 = R2(pred = predictions,obs = white_testing$quality)
+)
+
+
+models <- list(red.rf_mdl=red.rf_mdl,
+               white.rf_mdl=white.rf_mdl)
+resamples(models) %>% summary(metric="RMSE")
+
+
 ```
 
 ```{r KNN}
+set.seed(345)
+
+red.knn_mdl <-  train(quality~ ., data = red_training, method = "knn",
+                  preProc = c('center', 'scale'),
+                  trControl = control_obj_regression)
+red.knn_mdl
+
+predictions = predict(red.knn_mdl, newdata = red_testing)
+
+red_knn.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = red_testing$quality),
+  R2 = R2(pred = predictions,obs = red_testing$quality)
+)
+
+red.knn_mdl.tuned <-  train(quality~ ., data = red_training, method = "knn",
+                  preProc = c('center', 'scale'),
+                  tuneGrid = data.frame(.k = 1:50),
+                  trControl = control_obj_regression)
+red.knn_mdl.tuned
+
+predictions = predict(red.knn_mdl.tuned, newdata = red_testing)
+
+red_knn.tuned.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = red_testing$quality),
+  R2 = R2(pred = predictions,obs = red_testing$quality)
+)
+
+#-------------------------------------------------------------------------------------#
+
+white.knn_mdl <-  train(quality~ ., data = white_training, method = "knn",
+                  preProc = c('center', 'scale'),
+                  trControl = control_obj_regression)
+white.knn_mdl
+
+predictions = predict(white.knn_mdl, newdata = white_testing)
+
+white_knn.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = white_testing$quality),
+  R2 = R2(pred = predictions,obs = white_testing$quality)
+)
+
+white.knn_mdl.tuned <-  train(quality~ ., data = white_training, method = "knn",
+                  preProc = c('center', 'scale'),
+                  tuneGrid = data.frame(.k = 1:50),
+                  trControl = control_obj_regression)
+white.knn_mdl.tuned
+
+predictions = predict(white.knn_mdl.tuned, newdata = white_testing)
+
+white_knn.tuned.metrics <- data.frame(
+  RMSE = RMSE(pred = predictions,obs = white_testing$quality),
+  R2 = R2(pred = predictions,obs = white_testing$quality)
+)
+
+models <- list(red.knn_mdl=red.knn_mdl, red.knn_mdl.tuned = red.knn_mdl.tuned,
+               white.knn_mdl=white.knn_mdl, white.knn_mdl.tuned = white.knn_mdl.tuned)
+resamples(models) %>% summary(metric="RMSE")
+
 ```
 
 ```{r RF Classification}
+set.seed(345)
+
+red_training$quality <- as.factor(red_training$quality)
+red_testing$quality <- as.factor(red_testing$quality)
+
+
+red_training <- red_training %>% 
+  mutate(quality = factor(quality, 
+                        labels = make.names(levels(quality))))
+red_testing <- red_testing %>% 
+  mutate(quality = factor(quality, 
+                        labels = make.names(levels(quality))))
+white_training <- white_training %>% 
+  mutate(quality = factor(quality, 
+                        labels = make.names(levels(quality))))
+white_testing <- white_testing %>% 
+  mutate(quality = factor(quality, 
+                        labels = make.names(levels(quality))))
+
+
+
+tune <- expand.grid(mtry = c(1:35))
+rfgrid <- expand.grid(.mtry = 1:15)
+
+red_rfmodel <- train(quality ~ fixed_acidity,
+                 data = red_training,
+                 method = "ranger",
+                 trControl = control_obj_classification,
+                 #tuneGrid = tune,
+                 ntree=100,
+                 importance = TRUE,
+                 )
+
+red_rftune_model <- train(quality ~., 
+                data = red_training,
+                method = "rf",
+                trControl = control_obj_classification,
+                ntree=100,
+                importance = TRUE, 
+                tuneGrid = rfgrid)
+
+class(red_testing$quality)
 ```
 
 ```{r RF Boosted}
+set.seed(345)
+
 ```
 
