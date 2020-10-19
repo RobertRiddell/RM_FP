@@ -1,0 +1,25 @@
+Red wine
+
+Normal
+Density, Ph
+
+Resonable Normal
+Fixed acidity, Volatile acidity 
+
+Non normal distribution
+Citric acid, residual sugar, chlorides, free sulfur dioxide, total sulfur dioxide, alcohol, sulphates
+
+White Wine
+Normal
+Density, Ph
+
+Resonable Normal
+Fixed acidity, Volatile acidity, free sulfur dioxide, total sulfur dixoide, sulphates, cirtric acid
+
+Non normal
+chlorides, residual sugar, alcohol
+
+
+outliers
+red wine: residual sugar, chlorides, sulphates
+white wine: residual sugar, cholrides, 

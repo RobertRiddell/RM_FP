@@ -20,42 +20,98 @@ library(caret)
 red_wine <- read_csv("winequality-red.csv")
 white_wine <- read_csv("winequality-white.csv")
 ```
-
-```{r data structure}
+## Data Structure
+There is two datasets that will be analysed by the selection of models. These datasets both relate to wine and contain 11 matching features (predictors) which will use to predict the quality (repsonse). The red wine dataset contains 1599 observations and the white wine dataset contains 4898 observations.
+```{r data structure eval=FALSE, include=FALSE}
 dim(red_wine)
 dim(white_wine)
 
 glimpse(red_wine)
 glimpse(white_wine)
 
+# remove spaces from col names
 red_wine <- clean_names(red_wine)
 white_wine <- clean_names(white_wine)
 
 
 ```
-
-```{r NA's}
+```{r NA's eval=FALSE, include=FALSE}
 sum(is.na(red_wine))
 sum(is.na(white_wine))
 ```
 
-
-```{r}
+## Distribution of Quality (response varaible)
+When looking at the distrubtion of quality in the red wine data we see a responable normal distrubtion, there are very few total observations with a quality rating of 3,4 and 8. This may be a factor when looking to predict quality as the datset imbalance may skew results. The white eine datset has a more normal distrbution with a mroe gradual step down from the peak of the histogram. The number of observations with qaulity of 3 and 9 are extremly low, while 4 and 8 have a relatively low number of observations.
+```{r eval=FALSE, include=FALSE}
 ggplot(red_wine, aes(quality)) + 
   geom_histogram(binwidth = 1, fill = 'navy') +
-  ggtitle("Distribution of Quality (response variable)") +
+  ggtitle("Red Wine: Distribution of Quality (response variable)") +
   xlab('Quality') +
   theme_bw()
   
 ggplot(white_wine, aes(quality)) + 
   geom_histogram(binwidth = 1, fill = 'navy') +
-  ggtitle("Distribution of Quality (response variable)") +
+  ggtitle("White Wine: Distribution of Quality (response variable)") +
   xlab('Quality') +
   theme_bw()
 ```
+## Distribution Of Predictors
+When assesing the distributiono f the predictor variables with the use of histograms, there are some similarites across features. In both datasets Density and Ph have a normal distribution, while chlorides, residual sugar and alchol have a non - normal distrubtion and fixed acidity adn volatile acidity are seent to be reasonably normal. When comparing the features that differ across the datasets we can see citric acid, free sulfur dioxide, total sulfur dioxide, sulphates appear as a non normal distribution in the red wine data but appear resoanble normal in the white wine data. This leads me to conclude that on the whole the white wine data set has a more normal distrubtion and may be more suitable to linear modelling techniques compared to the red wine data. When looking at possible outliers the features that appear to have outliers in both datasets are residual sugar and chlorides, while only in the red wine data does suplahe appera to have obvious outliers. 
+
+```{r eval=FALSE, include=FALSE}
+gg_histogram <- function(data,feature){
+  ggplot(data, aes(.data[[feature]])) + 
+    geom_histogram(fill = 'navy') +
+    ggtitle(deparse(substitute(data)) , feature) +
+    theme_bw()
+}
+
+## establish an object that contains the variables that are either catergorical or have less than 20 unique characters
+numeric_vars <- red_wine  %>% 
+  select(where(is_numeric),- quality) %>% 
+  names(.)  
+
+## for loop to create all the boxplots
+for (i in seq_along(numeric_vars)) {
+  print(gg_histogram(red_wine, r_numeric_vars[i]))
+}
+
+## for loop to create all the boxplots
+for (i in seq_along(numeric_vars)) {
+  print(gg_histogram(white_wine, w_numeric_vars[i]))
+}
+```
 
 
-```{r}
+## Scatterplots Predictors vs Reponse
+Comparing the predictors to wuality in scatterplots was somewhat challenging as the quality figure in an integer in nature, to aid with this while plotting the function geom_jitter() was used to get a better understanding on where the repsonses fall on the predictors scale. When visually assesing the linear relatioship it seems both datasets have a simialr pattern on matching features. It could be said volatile acidity adn alchohol have a poor to moderate linear relationship, while all other features have a poor linear relationship. This leads me to conclude that any linear modelling technique may not be appropriate on either of these datasets. 
+```{r eval=FALSE, include=FALSE}
+## a function to create boxplots
+gg_scatterplot <- function(data, feature){
+  ggplot(data = data, aes(y = quality, x = .data[[feature]])) +
+    geom_jitter() +
+    geom_smooth(method = 'lm') +
+    ggtitle(deparse(substitute(data)), feature) +
+    ylab(paste('Quality')) +
+    theme(legend.position = "none", 
+          axis.text.x = element_text(angle = 45))
+}
+## establish an object that contains the variables that are either catergorical or have less than 20 unique characters
+## for loop to create all the boxplots
+for (i in seq_along(numeric_vars)) {
+  print(gg_scatterplot(red_wine, r_numeric_vars[i]))
+}
+
+## for loop to create all the boxplots
+for (i in seq_along(numeric_vars)) {
+  print(gg_scatterplot(white_wine, w_numeric_vars[i]))
+}
+
+```
+
+
+## Boxplots for predictors
+```{r eval=FALSE, include=FALSE}
 ## a function to create boxplots
 gg_boxplot <- function(data, feature){
   ggplot(data = data, aes(x = quality, y = .data[[feature]], group = quality)) +
@@ -85,7 +141,6 @@ for (i in seq_along(w_numeric_vars)) {
 
 
 ```
-
 
 ```{r split data}
 set.seed(345)
@@ -127,7 +182,7 @@ control_obj_classification <- trainControl(
 
 ```
 
-
+## Multiple Linear Regression Model (MLM)
 ```{r MLM}
 library(MASS)
 set.seed(345)
@@ -190,12 +245,12 @@ R2(pred = white_testing$predictions,
 
 ## plotting the predictions against the actual score margin from the testing data
 ggplot(white_testing, aes(predictions, quality)) +
-  geom_point(colour = '#1111FF', alpha=0.7) +
+  geom_po(colour = '#1111FF', alpha=0.7) +
   geom_abline(colour = "red", linetype = "dashed")
 
 detach("package:MASS")
 ```
-
+## Penalised regression models 
 ```{r Penalised Models}
 set.seed(345)
 lambda <- 10^seq(-3,3,length=100)
@@ -307,7 +362,7 @@ resamples(models) %>% summary(metric="RMSE")
 
 
 ```
-
+## Decsion Tree Model
 ```{r DT}
 set.seed(345)
 library(rpart)
@@ -386,7 +441,7 @@ resamples(models) %>% summary(metric="RMSE")
 
 
 ```
-
+## Random forest Model
 ```{r RF}
 set.seed(345)
 red.rf_mdl <- train(quality ~ ., data = red_training,
@@ -428,7 +483,7 @@ resamples(models) %>% summary(metric="RMSE")
 
 
 ```
-
+## K Nearest Neighbour Model
 ```{r KNN}
 set.seed(345)
 
@@ -489,7 +544,8 @@ models <- list(red.knn_mdl=red.knn_mdl, red.knn_mdl.tuned = red.knn_mdl.tuned,
 resamples(models) %>% summary(metric="RMSE")
 
 ```
-
+# Classification Models
+## Split Data For Classification
 ```{r RF Classification}
 set.seed(345)
 
@@ -531,7 +587,7 @@ white_c_testing <-  white_wine %>%
 
 ```
 
-
+## Random Forest Model
 ```{r RF Classification}
 set.seed(345)
 
@@ -576,8 +632,33 @@ confusionMatrix(data = white_rf_mdl.C,
 
 ```
 
-```{r RF Boosted}
+## Boosted Model
+```{r Boosted}
 set.seed(345)
 
+red_gbtree <- train(quality ~.,
+                data = red_c_training,
+                method = "xgbTree",
+                trControl = control_obj_classification)
+
+
+plot(varImp(red_gbtree))
+
+confusionMatrix(data = gbtree,
+                reference = red_c_testing$quality)
+
+
+white_gbtree <- train(quality ~.,
+                data = white_c_training,
+                method = "xgbTree",
+                trControl = control_obj_classification)
+
+
+plot(varImp(white_gbtree))
+
+confusionMatrix(data = white_gbtree,
+                reference = white_c_testing$quality)
+
+plot(red_gbtree)
 ```
 
