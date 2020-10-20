@@ -12,6 +12,9 @@ library(tidyverse)
 library(janitor)
 library(ggplot2)
 library(caret)
+library(rpart)
+library(rpart.plot)
+
 
 ```
 
@@ -22,7 +25,7 @@ white_wine <- read_csv("winequality-white.csv")
 ```
 ## Data Structure
 There is two datasets that will be analysed by the selection of models. These datasets both relate to wine and contain 11 matching features (predictors) which will use to predict the quality (repsonse). The red wine dataset contains 1599 observations and the white wine dataset contains 4898 observations.
-```{r data structure eval=FALSE, include=FALSE}
+```{r data structure eval=FALSE}
 dim(red_wine)
 dim(white_wine)
 
@@ -171,7 +174,7 @@ white_training <-  white_wine %>%
 white_testing <-  white_wine %>% 
   slice(-inTrain_white)
 
-rm(inTrain_red, inTrain_white, i, r_numeric_vars, w_numeric_vars, gg_boxplot)
+rm(inTrain_red, inTrain_white)
 ```
 
 
@@ -269,6 +272,7 @@ rm(red.mlm_mdl,red.mlm_mdl.tuned,red.mlm_mdl.tuned.metrics,white.mlm_mdl,white.m
 ```
 
 ## Penalised regression models 
+Both datasets contain multiple varaibles so to test how the dataset viewed non signinfnat data it was subjected to penalised regression modelling, namely Ridge, Lasso and elastic. As observerd with the MLM the red wine data is slightly better represented with a linear model, this can also be observed with the results of the linear model. After processing the data through the penalised model we can observe very similar results across the three models. Both the red and white wine data are best modelled by the Ridge regression but to see thie improvement we must go to the third decimal place. The difference between the penalised model and MLM is also very small with a slightly better RMSE, this potenatilly means that excess features is not what is affecting the original MLM and instead the data is badly represented by a linear model. 
 ```{r Penalised Models}
 set.seed(345)
 lambda <- 10^seq(-3,3,length=100)
@@ -283,9 +287,11 @@ red_ridge <- train(
 coef(red_ridge$finalModel, red_ridge$bestTune$lambda)
 predictions <- red_ridge %>% predict(red_testing)
 
-data.frame(
-  RMSE.rid.red = RMSE(predictions, red_testing$quality),
-  Rsquare.rid.red = caret::R2(predictions, red_testing$quality)
+red_ridge.metrics <- data.frame(
+  dataset = 'Red Wine',
+  model = 'Ridge',
+  RMSE = RMSE(predictions, red_testing$quality),
+  Rsquare = R2(predictions, red_testing$quality)
 )
 
 #lasso
@@ -299,9 +305,11 @@ red_lasso <- train(
 coef(red_lasso$finalModel, red_lasso$bestTune$lambda)
 predictions <- red_lasso %>% predict(red_testing)
 
-data.frame(
-  RMSE.las.red = RMSE(predictions, red_testing$quality),
-  Rsquare.las.red = caret::R2(predictions, red_testing$quality)
+red_lasso.metrics <- data.frame(
+  dataset = 'Red Wine',
+  model = 'Lasso',
+  RMSE = RMSE(predictions, red_testing$quality),
+  Rsquare = R2(predictions, red_testing$quality)
 )
 
 #elastic
@@ -314,9 +322,11 @@ red_elastic <- train(
 coef(red_elastic$finalModel, red_elastic$bestTune$lambda)
 predictions <- red_elastic %>% predict(red_testing)
 
-data.frame(
-  RMSE.net.red = RMSE(predictions, red_testing$quality),
-  Rsquare.net.red = caret::R2(predictions, red_testing$quality)
+red_elastic.metrics <- data.frame(
+  dataset = 'Red Wine',
+  model = 'elastic',
+  RMSE = RMSE(predictions, red_testing$quality),
+  Rsquare = R2(predictions, red_testing$quality)
 )
 
 #caret compare all of ridge, lasso, elastic net: 
@@ -336,9 +346,11 @@ white_ridge <- train(
 coef(white_ridge$finalModel, white_ridge$bestTune$lambda)
 predictions <- white_ridge %>% predict(white_testing)
 
-data.frame(
-  RMSE.rid.white = RMSE(predictions, white_testing$quality),
-  Rsquare.rid.white = caret::R2(predictions, white_testing$quality)
+white_ridge.metrics <- data.frame(
+  dataset = 'White Wine',
+  model = 'Ridge',
+  RMSE = RMSE(predictions, white_testing$quality),
+  Rsquare = R2(predictions, white_testing$quality)
 )
 
 #lasso
@@ -352,9 +364,11 @@ white_lasso <- train(
 coef(white_lasso$finalModel, white_lasso$bestTune$lambda)
 predictions <- white_lasso %>% predict(white_testing)
 
-data.frame(
-  RMSE.las.white = RMSE(predictions, white_testing$quality),
-  Rsquare.las.white = caret::R2(predictions, white_testing$quality)
+white_lasso.metrics <- data.frame(
+  dataset = 'White Wine',
+  model = 'Lasso',
+  RMSE = RMSE(predictions, white_testing$quality),
+  Rsquare = R2(predictions, white_testing$quality)
 )
 
 #elastic
@@ -367,10 +381,13 @@ white_elastic <- train(
 coef(white_elastic$finalModel, white_elastic$bestTune$lambda)
 predictions <- white_elastic %>% predict(white_testing)
 
-data.frame(
-  RMSE.net.white = RMSE(predictions, white_testing$quality),
-  Rsquare.net.white = R2(predictions, white_testing$quality)
+white_elastic.metrics <- data.frame(
+  dataset = 'White Wine',
+  model = 'Elastic',
+  RMSE = RMSE(predictions, white_testing$quality),
+  Rsquare = R2(predictions, white_testing$quality)
 )
+
 
 #caret compare all of ridge, lasso, elastic net: 
 #choose best with smallest median or mean RMSE
@@ -378,13 +395,18 @@ models <- list(red_ridge=red_ridge, red_lasso=red_lasso, red_elastic=red_elastic
                white_ridge=white_ridge, white_lasso=white_lasso, white_elastic=white_elastic)
 resamples(models) %>% summary(metric="RMSE")
 
+rbind(red_ridge.metrics,red_lasso.metrics,red_elastic.metrics,
+      white_ridge.metrics,white_lasso.metrics,white_elastic.metrics)
 
+rm(red_elastic,red_elastic.metrics,red_lasso,red_lasso.metrics,red_ridge,red_ridge.metrics,
+   white_elastic,white_elastic.metrics,white_lasso,white_lasso.metrics,white_ridge,white_ridge.metrics,
+   lambda, predictions)
 ```
 ## Decsion Tree Model
+
+
 ```{r DT}
 set.seed(345)
-library(rpart)
-library(rpart.plot)
 
 
 red_tree <-  rpart(quality ~.,
@@ -403,7 +425,7 @@ red_tree.tuned <- train(quality ~.,
                    data = red_training,
                    method = "rpart",
                    trControl = control_obj_regression,
-                   tuneGrid = expand.grid(cp = seq(0.001,0.02,0.001)))
+                   tuneGrid = expand.grid(cp = seq(0.001,0.005,0.001)))
 red_tree.tuned
 plot(red_tree.tuned)
 rattle::fancyRpartPlot(red_tree.tuned$finalModel, sub = "")
@@ -413,6 +435,7 @@ plot(varImp(red_tree.tuned))
 predictions = predict(red_tree.tuned, newdata = red_testing)
 
 red_tree.tuned.metrics <- data.frame(
+  dataset = 'Red Wine',
   RMSE = RMSE(pred = predictions,obs = red_testing$quality),
   R2 = R2(pred = predictions,obs = red_testing$quality)
 )
@@ -433,11 +456,11 @@ white_tree.metrics <- data.frame(
   R2 = R2(pred = predictions,obs = white_testing$quality)
 )
 
-white_tree.tuned <- train(quality ~.,
+white_tree.tuned <- train(quality ~ .,
                    data = white_training,
                    method = "rpart",
                    trControl = control_obj_regression,
-                   tuneGrid = expand.grid(cp = seq(0.001,0.02,0.001)))
+                   tuneGrid = expand.grid(cp = seq(0.001,0.005,0.001)))
 white_tree.tuned
 plot(white_tree.tuned)
 rattle::fancyRpartPlot(white_tree.tuned$finalModel, sub = "")
@@ -447,6 +470,7 @@ plot(varImp(white_tree.tuned))
 predictions = predict(white_tree.tuned, newdata = white_testing)
 
 white_tree.tuned.metrics <- data.frame(
+  dataset = "White Wine",
   RMSE = RMSE(pred = predictions,obs = white_testing$quality),
   R2 = R2(pred = predictions,obs = white_testing$quality)
 )
@@ -457,7 +481,7 @@ models <- list(red_tree.tuned=red_tree.tuned,
                white_tree.tuned=white_tree.tuned)
 resamples(models) %>% summary(metric="RMSE")
 
-
+rbind(red_tree.tuned.metrics, white_tree.tuned.metrics)
 ```
 ## Random forest Model
 ```{r RF}
