@@ -1,0 +1,30 @@
+Boxplots
+################################### Red wine ################################### 
+-bigger range
+fixed acidity,volatile acidity, citric acid, free sulfur dioxide, density, ph, alcohol
+
+-less range
+residual sugar, chlorides, total sulfur dioxide, sulphates
+
+-different medians
+volatile acidity, citric acid, free sulfur dioxide, total sulfur dioxide, density, ph, sulphates, alcohol
+
+-similar medians
+fixed acidity, residual sugar, chlorides
+
+################################### White Wine ################################### 
+-bigger range
+fixed acidity,volatile acidity, residual sugar,  ph, alcohol, total sulfur dioxide, sulphates
+
+-less range
+citric acid, chlorides,  free sulfur dioxide, density,
+
+-different medians
+fixed acidity, volatile acidity,total sulfur dioxide, density, ph, alcohol
+
+-similar medians
+citric acid, residual sugar, chlorides, free sulfur dioxide, density, sulphates
+
+both - volatile acidity, density,  alcohol, 
+red wine - sulphates, total sulfur dioxide
+white wine - chlorides, free sulfur dioxide

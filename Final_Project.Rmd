@@ -84,7 +84,7 @@ for (i in seq_along(numeric_vars)) {
 
 
 ## Scatterplots Predictors vs Reponse
-Comparing the predictors to wuality in scatterplots was somewhat challenging as the quality figure in an integer in nature, to aid with this while plotting the function geom_jitter() was used to get a better understanding on where the repsonses fall on the predictors scale. When visually assesing the linear relatioship it seems both datasets have a simialr pattern on matching features. It could be said volatile acidity adn alchohol have a poor to moderate linear relationship, while all other features have a poor linear relationship. This leads me to conclude that any linear modelling technique may not be appropriate on either of these datasets. 
+Comparing the predictors to wuality in scatterplots was somewhat challenging as the quality figure in an integer in nature, to aid with this while plotting the function geom_jitter() was used to get a better understanding on where the repsonses fall on the predictors scale. When visually assesing the linear relatioship it seems both datasets have a similar pattern on matching features. It could be said volatile acidity and alchohol have moderate linear relationship, while all other features have a poor linear relationship. This leads me to conclude that any linear modelling technique may not be appropriate on either of these datasets. 
 ```{r eval=FALSE, include=FALSE}
 ## a function to create boxplots
 gg_scatterplot <- function(data, feature){
@@ -107,35 +107,45 @@ for (i in seq_along(numeric_vars)) {
   print(gg_scatterplot(white_wine, w_numeric_vars[i]))
 }
 
+red_wine %>% 
+  select(is.numeric) %>% 
+  corrr::correlate() %>% 
+  corrr::focus(quality) %>%
+  arrange(quality) 
+
+white_wine %>% 
+  select(is.numeric) %>% 
+  corrr::correlate() %>% 
+  corrr::focus(quality) %>%
+  arrange(quality)
+
 ```
 
 
 ## Boxplots for predictors
+To assess the suitableability of classification models the distribution based on each level of the response varaibles vs each preditor was assesed through boxplots. This was done to assess how each predictor affects each level of the reponse varible and if the levels of the repsonse variable can be used to clearly discrimnant the quality. Through this visual assesment it seems some of the predictors show a clear difference in their median values and could be important festures when it comes to classfication prediction. Across both datasets volatile acidity, density and alcohol appear to have a consistently different median values which may mean they are able to descrimnante classes and imoprve predictions. In addition to this in the red wine data sulphates and total sulfur dioxide appear to be good predicttors, while in the white wine data chlorides and free sulfur dioxide appear to make good predictors. 
 ```{r eval=FALSE, include=FALSE}
 ## a function to create boxplots
 gg_boxplot <- function(data, feature){
   ggplot(data = data, aes(x = quality, y = .data[[feature]], group = quality)) +
     geom_boxplot() +
     xlab(paste('Quality')) +
+    ggtitle(deparse(substitute(data)), feature) +
     theme(legend.position = "none", 
           axis.text.x = element_text(angle = 45))
 }
-## establish an object that contains the variables that are either catergorical or have less than 20 unique characters
-r_numeric_vars <- red_wine  %>% 
+
+numeric_vars <- red_wine  %>% 
   select(where(is_numeric),- quality) %>% 
   names(.)  
 
 ## for loop to create all the boxplots
-for (i in seq_along(r_numeric_vars)) {
+for (i in seq_along(numeric_vars)) {
   print(gg_boxplot(red_wine, r_numeric_vars[i]))
 }
 
-w_numeric_vars <- white_wine  %>% 
-  select(where(is_numeric),- quality) %>% 
-  names(.)  
-
 ## for loop to create all the boxplots
-for (i in seq_along(w_numeric_vars)) {
+for (i in seq_along(numeric_vars)) {
   print(gg_boxplot(white_wine, w_numeric_vars[i]))
 }
 
@@ -183,73 +193,81 @@ control_obj_classification <- trainControl(
 ```
 
 ## Multiple Linear Regression Model (MLM)
+The data sets were intialled modelled using a standard multiple linear regression, both were then tuned to see if there was an improvement by using a stepwise linear model. The stepwise method for fitting a regression model is where each varaible is selected based on it signifincance. in relation to both wine dataset the stepwise tuning resulting in a very small increase to the adjusted R2 value. When comparing the adjusted R-sqaure values from both models we see that the linear model is better at representing the red wine data, resulting in an R-sqaure of 0.35. Where the R-sqaure value from the white wine data was 0.28. When applied to the testing data the red wine data returns an RMSE value of 0.68 and the white wine data returns 0.75. In combintaion of both the R-sqaure and RMSE values we can see the MLM is a better model for the red wine data. I dont think a linear model particularly suits either dataset as the R-sqaure values are quite low therfore suggesting the model does not represent the data well. something that could hinder the linear model is the reponse value being an interger, when the model is looking to predict it will use floats and therefore smooths out the discrmepanciey from one interger to another. It was also seen through the the scatter plots there was large amount of variance and no feature returned a visually strong correlation. 
 ```{r MLM}
 library(MASS)
 set.seed(345)
 
-lm_mdl.red <- train(quality ~ . , data = red_training, 
+red.mlm_mdl <- train(quality ~ . , data = red_training, 
                     method = 'lm',
                     trControl = control_obj_regression,
                     trace = F)
-lm_mdl.red
-summary(lm_mdl.red)
+red.mlm_mdl
+summary(red.mlm_mdl)
 # Insignificant values: fixed_acidity,citric_acid,residual_sugar,density
 
-lm_mdl.red.tuned <- train(quality ~ . , data = red_training, 
+red.mlm_mdl.tuned <- train(quality ~ . , data = red_training, 
                 method = 'lmStepAIC',
                 trControl = control_obj_regression,
                 trace = F)
-lm_mdl.red.tuned
-summary(lm_mdl.red.tuned)  
+red.mlm_mdl.tuned
+summary(red.mlm_mdl.tuned)  
 
 # applying to testing data
 red_testing <-  red_testing %>% 
-  mutate(predictions = predict(lm_mdl.red.tuned, newdata = red_testing))
+  mutate(predictions = predict(red.mlm_mdl.tuned, newdata = red_testing))
 
 ## calculting the RMSE amd R squared of the linear model on the testing data
-RMSE(pred = red_testing$predictions,
+red.mlm_mdl.tuned.metrics <- data.frame(
+    dataset = 'Red Wine',
+  RMSE =RMSE(pred = red_testing$predictions,
+       obs = red_testing$quality),
+  R2 = R2(pred = red_testing$predictions,
      obs = red_testing$quality)
-R2(pred = red_testing$predictions,
-   obs = red_testing$quality)
-
+)
 ## plotting the predictions against the actual score margin from the testing data
 ggplot(red_testing, aes(predictions, quality)) +
   geom_point(colour = '#1111FF', alpha=0.7) +
   geom_abline(colour = "red", linetype = "dashed")
 
 #-------------------------------------------------------------------------------------#
-lm_mdl.white <- train(quality ~ . , data = white_training, 
+white.mlm_mdl <- train(quality ~ . , data = white_training, 
                       method = 'lm',
                       trControl = control_obj_regression,
                       trace = F)
-lm_mdl.white
-summary(lm_mdl.white)
+white.mlm_mdl
+summary(white.mlm_mdl)
 # Insignificant values: citric_acid,chlorides,total_sulfur_dioxide 
-
-lm_mdl.white.tuned <- train(quality ~ . , data = white_training, 
+white.mlm_mdl.tuned <- train(quality ~ . , data = white_training, 
                 method = 'lmStepAIC',
                 trControl = control_obj_regression,
                 trace = F)
-lm_mdl.white.tuned
-summary(lm_mdl.white.tuned)  
+white.mlm_mdl.tuned
+summary(white.mlm_mdl.tuned)  
 
 # applying to testing data
 white_testing <-  white_testing %>% 
-  mutate(predictions = predict(lm_mdl.white.tuned, newdata = white_testing))
+  mutate(predictions = predict(white.mlm_mdl.tuned, newdata = white_testing))
 
 ## calculting the RMSE amd R squared of the linear model on the testing data
-RMSE(pred = white_testing$predictions,
+white.mlm_mdl.tuned.metrics <- data.frame(
+  dataset = 'White Wine',
+  RMSE = RMSE(pred = white_testing$predictions,
+       obs = white_testing$quality),
+  R2 = R2(pred = white_testing$predictions,
      obs = white_testing$quality)
-R2(pred = white_testing$predictions,
-   obs = white_testing$quality)
-
+)
 ## plotting the predictions against the actual score margin from the testing data
 ggplot(white_testing, aes(predictions, quality)) +
-  geom_po(colour = '#1111FF', alpha=0.7) +
+  geom_point(colour = '#1111FF', alpha=0.7) +
   geom_abline(colour = "red", linetype = "dashed")
 
+rbind(red.mlm_mdl.tuned.metrics, white.mlm_mdl.tuned.metrics)
+
 detach("package:MASS")
+rm(red.mlm_mdl,red.mlm_mdl.tuned,red.mlm_mdl.tuned.metrics,white.mlm_mdl,white.mlm_mdl.tuned,white.mlm_mdl.tuned.metrics)
 ```
+
 ## Penalised regression models 
 ```{r Penalised Models}
 set.seed(345)
@@ -351,7 +369,7 @@ predictions <- white_elastic %>% predict(white_testing)
 
 data.frame(
   RMSE.net.white = RMSE(predictions, white_testing$quality),
-  Rsquare.net.white = caret::R2(predictions, white_testing$quality)
+  Rsquare.net.white = R2(predictions, white_testing$quality)
 )
 
 #caret compare all of ridge, lasso, elastic net: 

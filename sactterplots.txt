@@ -1,0 +1,16 @@
+Both
+
+moderate
+volatile acidity
+alcohol
+
+poor
+fixed acidity
+citric acid
+residual sugar
+chlorides
+free sulfur dioxide
+total sulfur dioxide
+desnity
+ph
+sulphates
