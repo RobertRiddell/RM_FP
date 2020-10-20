@@ -25,7 +25,7 @@ white_wine <- read_csv("winequality-white.csv")
 ```
 ## Data Structure
 There is two datasets that will be analysed by the selection of models. These datasets both relate to wine and contain 11 matching features (predictors) which will use to predict the quality (repsonse). The red wine dataset contains 1599 observations and the white wine dataset contains 4898 observations.
-```{r data structure eval=FALSE}
+```{r data structure}
 dim(red_wine)
 dim(white_wine)
 
@@ -38,6 +38,7 @@ white_wine <- clean_names(white_wine)
 
 
 ```
+
 ```{r NA's eval=FALSE, include=FALSE}
 sum(is.na(red_wine))
 sum(is.na(white_wine))
@@ -59,7 +60,7 @@ ggplot(white_wine, aes(quality)) +
   theme_bw()
 ```
 ## Distribution Of Predictors
-When assesing the distributiono f the predictor variables with the use of histograms, there are some similarites across features. In both datasets Density and Ph have a normal distribution, while chlorides, residual sugar and alchol have a non - normal distrubtion and fixed acidity adn volatile acidity are seent to be reasonably normal. When comparing the features that differ across the datasets we can see citric acid, free sulfur dioxide, total sulfur dioxide, sulphates appear as a non normal distribution in the red wine data but appear resoanble normal in the white wine data. This leads me to conclude that on the whole the white wine data set has a more normal distrubtion and may be more suitable to linear modelling techniques compared to the red wine data. When looking at possible outliers the features that appear to have outliers in both datasets are residual sugar and chlorides, while only in the red wine data does suplahe appera to have obvious outliers. 
+When assesing the distributiono f the predictor variables with the use of histograms, there are some similarites across features. In both datasets Density and Ph have a normal distribution, while chlorides, residual sugar and alchol have a non - normal distrubtion and fixed acidity and volatile acidity are seent to be reasonably normal. When comparing the features that differ across the datasets we can see citric acid, free sulfur dioxide, total sulfur dioxide, sulphates appear as a non normal distribution in the red wine data but appear resoanble normal in the white wine data. This leads me to conclude that on the whole the white wine data set has a more normal distrubtion compared to the red wine data. When looking at possible outliers the features that appear to have outliers in both datasets are residual sugar and chlorides, while only in the red wine data does suplahe appera to have obvious outliers. 
 
 ```{r eval=FALSE, include=FALSE}
 gg_histogram <- function(data,feature){
@@ -268,7 +269,8 @@ ggplot(white_testing, aes(predictions, quality)) +
 rbind(red.mlm_mdl.tuned.metrics, white.mlm_mdl.tuned.metrics)
 
 detach("package:MASS")
-rm(red.mlm_mdl,red.mlm_mdl.tuned,red.mlm_mdl.tuned.metrics,white.mlm_mdl,white.mlm_mdl.tuned,white.mlm_mdl.tuned.metrics)
+rm(red.mlm_mdl,red.mlm_mdl.tuned.metrics,white.mlm_mdl,white.mlm_mdl.tuned.metrics)
+
 ```
 
 ## Penalised regression models 
@@ -403,7 +405,7 @@ rm(red_elastic,red_elastic.metrics,red_lasso,red_lasso.metrics,red_ridge,red_rid
    lambda, predictions)
 ```
 ## Decsion Tree Model
-
+Intially both datsets were processed using an ANOVA method which looks to minimise the variance at each node. This resulted in the red wine data creating a decsion tree of 3 features, splitting on alcohol, sulphates and volatile acidity. The white wine data created a tree split on 4 features, alcohol, free sulfur dioxide and volatile acidity. To attempt to tune the model it was subjected to multiple complexity parameters, in both cases the metrics (RMSE, R-Sqaure) were improved when the complexity paramter was increased and the decsion tree included more features. When comparing the two tuned trees on the testing data the red wine data shows an improved RMSE compared to the white wine data but the white wine data had a better R-sqaure value. As the tuned decsion trees are much more complex they could be prone overfitting and be incorrect with new data, but as we see an improvement on RMSE metrics of the trained tree when compared to the testing data I do not belive the trees are overfit. When looking at important features of the datasets teh red wine data seemed more heavlity reliant on the first three features, while the whiet wine data had a more even step down of feature imporatnce. The red wine data completly ignored the residual sugar feature while the white wine ignored the sulphates. The white wine dataset performance is very similar to the MLM model, while it seems to fit the red wine dataset worse as a R-sqaure value of 0.23 is returned compared to that of 0.34 in the MLM model. Overall the desion tree performed poorly for regression and it may be due to the large amount of value overlap we can see when looking at the boxplots in many of the variables.
 
 ```{r DT}
 set.seed(345)
@@ -417,6 +419,8 @@ rpart.plot(red_tree)
 predictions = predict(red_tree, newdata = red_testing)
 
 red_tree.metrics <- data.frame(
+  dataset = 'Red Wine',
+  Model = 'Tree',
   RMSE = RMSE(pred = predictions,obs = red_testing$quality),
   R2 = R2(pred = predictions,obs = red_testing$quality)
 )
@@ -425,7 +429,7 @@ red_tree.tuned <- train(quality ~.,
                    data = red_training,
                    method = "rpart",
                    trControl = control_obj_regression,
-                   tuneGrid = expand.grid(cp = seq(0.001,0.005,0.001)))
+                   tuneGrid = expand.grid(cp = seq(0.001,0.02,0.001)))
 red_tree.tuned
 plot(red_tree.tuned)
 rattle::fancyRpartPlot(red_tree.tuned$finalModel, sub = "")
@@ -436,6 +440,7 @@ predictions = predict(red_tree.tuned, newdata = red_testing)
 
 red_tree.tuned.metrics <- data.frame(
   dataset = 'Red Wine',
+  Model = 'Tuned Tree',
   RMSE = RMSE(pred = predictions,obs = red_testing$quality),
   R2 = R2(pred = predictions,obs = red_testing$quality)
 )
@@ -452,6 +457,8 @@ rpart.plot(white_tree)
 predictions = predict(white_tree, newdata = white_testing)
 
 white_tree.metrics <- data.frame(
+  dataset = "White Wine",
+  Model = 'Tree',
   RMSE = RMSE(pred = predictions,obs = white_testing$quality),
   R2 = R2(pred = predictions,obs = white_testing$quality)
 )
@@ -460,7 +467,7 @@ white_tree.tuned <- train(quality ~ .,
                    data = white_training,
                    method = "rpart",
                    trControl = control_obj_regression,
-                   tuneGrid = expand.grid(cp = seq(0.001,0.005,0.001)))
+                   tuneGrid = expand.grid(cp = seq(0.001,0.01,0.001)))
 white_tree.tuned
 plot(white_tree.tuned)
 rattle::fancyRpartPlot(white_tree.tuned$finalModel, sub = "")
@@ -471,6 +478,7 @@ predictions = predict(white_tree.tuned, newdata = white_testing)
 
 white_tree.tuned.metrics <- data.frame(
   dataset = "White Wine",
+  Model = 'Tuned Tree',
   RMSE = RMSE(pred = predictions,obs = white_testing$quality),
   R2 = R2(pred = predictions,obs = white_testing$quality)
 )
@@ -481,14 +489,19 @@ models <- list(red_tree.tuned=red_tree.tuned,
                white_tree.tuned=white_tree.tuned)
 resamples(models) %>% summary(metric="RMSE")
 
-rbind(red_tree.tuned.metrics, white_tree.tuned.metrics)
+rbind(red_tree.metrics, red_tree.tuned.metrics, white_tree.metrics, white_tree.tuned.metrics)
+
 ```
 ## Random forest Model
+The random forest model found the best model fit using 6 trees at each split for the red wine dataset and 3 features at each split for the white wine. As more features were introduced into the model R-sqaured values decreased and RMSE increased. The random forest model returned the lowest RMSE and highest R-Sqaure values for both the red and white wine data. The model had a slightly better fit on the white wine data with a RMSE and R-sqaure of 0.60 and 0.53 against the red wine values that were RMSE = 0.63 and R-sqaure = 0.43. The random forest model may have performed better on the data due to its random nature being able to better understand teh overlap between feature behavour and reposnse outcome. As we saw with the scatter plots some features had very little impact on quality while some features clearly had a stronger relationship. using its many iterations the random forest was able to trial many of the less significant features and understand how those values impact the prediction. This is a signiifncat imprvemnt on the single decison tree as the single tree struggled to caputre the ovaerlal variabibilty of the data while the iterations of teh random forest are better suited at encapsualting that variability.
 ```{r RF}
 set.seed(345)
+gridrf <- expand.grid(.mtry = c(1:11))
+
 red.rf_mdl <- train(quality ~ ., data = red_training,
                 method = 'rf',
-                trControl = control_obj_regression)
+                trControl = control_obj_regression,
+                tuneGrid = gridrf)
 
 red.rf_mdl
 plot(red.rf_mdl)
@@ -497,6 +510,8 @@ plot(varImp(red.rf_mdl))
 predictions = predict(red.rf_mdl, newdata = red_testing)
 
 red_rf.metrics <- data.frame(
+  dataset = 'Red Wine',
+  model = 'Random Forest',
   RMSE = RMSE(pred = predictions,obs = red_testing$quality),
   R2 = R2(pred = predictions,obs = red_testing$quality)
 )
@@ -505,7 +520,9 @@ red_rf.metrics <- data.frame(
 
 white.rf_mdl <- train(quality ~ ., data = white_training,
                 method = 'rf',
-                trControl = control_obj_regression)
+                trControl = control_obj_regression,
+                tuneGrid = gridrf)
+
 
 white.rf_mdl
 plot(white.rf_mdl)
@@ -514,6 +531,8 @@ plot(varImp(white.rf_mdl))
 predictions = predict(white.rf_mdl, newdata = white_testing)
 
 white_rf.metrics <- data.frame(
+  dataset = 'White Wine',
+  model = 'Random Forest',
   RMSE = RMSE(pred = predictions,obs = white_testing$quality),
   R2 = R2(pred = predictions,obs = white_testing$quality)
 )
@@ -523,33 +542,41 @@ models <- list(red.rf_mdl=red.rf_mdl,
                white.rf_mdl=white.rf_mdl)
 resamples(models) %>% summary(metric="RMSE")
 
+rbind(red_rf.metrics, white_rf.metrics)
 
 ```
 ## K Nearest Neighbour Model
-```{r KNN}
+The data for both red and white wine was intially processed with the standard knn model with no tuning parameter, when doing this the algorithm will choose a selection of values for k. Using the information from teh first model we are able to get and understaiding of what values of k are likely to create the best result. In order to ensure the model is as good as possible we are able to select values for k with teh algorithm will attempt to use and return the one that offers the best result. The red wine data chose a k of 13 and the tuning showed a steep decrease from the lower values of k until levelling out at around a k of 10. the white wine data chose a k of 16 , showing a similar pattern and levelling out at around 10. This shows the model is looking for a resonable wide set of neighbours to attempt to smooth out some of the variability in the data. Both the tuned model showed a slight improvement when compared to the testing data, with the red wine having a lower RMSE value but the wine data having a higher R-Sqaure. The KNN model performed similar with both datasets, although this model does not represent the data well with an R-sqaure of 0.32 and 0.34 on the red and white wine data respectively.
+```{r KNN} 
 set.seed(345)
 
 red.knn_mdl <-  train(quality~ ., data = red_training, method = "knn",
                   preProc = c('center', 'scale'),
                   trControl = control_obj_regression)
 red.knn_mdl
+plot(red.knn_mdl)
 
 predictions = predict(red.knn_mdl, newdata = red_testing)
 
 red_knn.metrics <- data.frame(
+  dataset = 'Red Wine',
+  model = 'KNN',
   RMSE = RMSE(pred = predictions,obs = red_testing$quality),
   R2 = R2(pred = predictions,obs = red_testing$quality)
 )
 
 red.knn_mdl.tuned <-  train(quality~ ., data = red_training, method = "knn",
                   preProc = c('center', 'scale'),
-                  tuneGrid = data.frame(.k = 1:50),
+                  tuneGrid = data.frame(.k = 1:20),
                   trControl = control_obj_regression)
 red.knn_mdl.tuned
+plot(red.knn_mdl.tuned)
 
 predictions = predict(red.knn_mdl.tuned, newdata = red_testing)
 
 red_knn.tuned.metrics <- data.frame(
+  dataset = 'Red Wine',
+  model = 'KNN Tuned',
   RMSE = RMSE(pred = predictions,obs = red_testing$quality),
   R2 = R2(pred = predictions,obs = red_testing$quality)
 )
@@ -560,23 +587,29 @@ white.knn_mdl <-  train(quality~ ., data = white_training, method = "knn",
                   preProc = c('center', 'scale'),
                   trControl = control_obj_regression)
 white.knn_mdl
+plot(white.knn_mdl)
 
 predictions = predict(white.knn_mdl, newdata = white_testing)
 
 white_knn.metrics <- data.frame(
+  dataset = 'White Wine',
+  model = 'KNN',
   RMSE = RMSE(pred = predictions,obs = white_testing$quality),
   R2 = R2(pred = predictions,obs = white_testing$quality)
 )
 
 white.knn_mdl.tuned <-  train(quality~ ., data = white_training, method = "knn",
                   preProc = c('center', 'scale'),
-                  tuneGrid = data.frame(.k = 1:50),
+                  tuneGrid = data.frame(.k = 1:20),
                   trControl = control_obj_regression)
 white.knn_mdl.tuned
+plot(white.knn_mdl.tuned)
 
 predictions = predict(white.knn_mdl.tuned, newdata = white_testing)
 
 white_knn.tuned.metrics <- data.frame(
+  dataset = 'White Wine',
+  model = 'KNN Tuned',
   RMSE = RMSE(pred = predictions,obs = white_testing$quality),
   R2 = R2(pred = predictions,obs = white_testing$quality)
 )
@@ -585,7 +618,34 @@ models <- list(red.knn_mdl=red.knn_mdl, red.knn_mdl.tuned = red.knn_mdl.tuned,
                white.knn_mdl=white.knn_mdl, white.knn_mdl.tuned = white.knn_mdl.tuned)
 resamples(models) %>% summary(metric="RMSE")
 
+rbind(red_knn.metrics, red_knn.tuned.metrics, white_knn.metrics, white_knn.tuned.metrics)
+
+#plot RMSE of reg models
+models <- list(red.knn_mdl=red.knn_mdl, red.knn_mdl.tuned = red.knn_mdl.tuned,
+               white.knn_mdl=white.knn_mdl, white.knn_mdl.tuned = white.knn_mdl.tuned)
+resamples(models) %>% summary(metric="RMSE")
 ```
+
+
+```{r regression models} 
+resampls <- resamples(list(Red_MLM = red.mlm_mdl.tuned,
+                           White_MLM = white.mlm_mdl.tuned,
+                           Red_Ridge = red_ridge,
+                           White_ridge = white_ridge,
+                           red_tree = red_tree.tuned,
+                           white_tree = white_tree.tuned,
+                           red_rf = red.rf_mdl,
+                           white_rf = white.rf_mdl,
+                           red_knn = red.knn_mdl.tuned,
+                           white_knn = white.knn_mdl.tuned))
+
+## displaying the model perfomance in order to select the best model
+gridExtra::grid.arrange(bwplot(resampls, metric = 'RMSE'),
+                        bwplot(resampls, metric = 'Rsquared'),
+                        ncol = 2)
+
+```
+
 # Classification Models
 ## Split Data For Classification
 ```{r RF Classification}

@@ -1,0 +1,32 @@
+MLM
+dataset		RMSE 		R2	
+Red Wine	0.6774860	0.3418841		
+White Wine	0.7472901	0.2533709
+
+Penalised
+
+dataset		model	RMSE		 Rsquare
+Red Wine	Ridge	0.6759507	0.3459513	
+Red Wine	Lasso	0.6766459	0.3436585	
+Red Wine	elastic	0.6765756	0.3439202	
+White Wine	Ridge	0.7462484	0.2541476	
+White Wine	Lasso	0.7476488	0.2518461	
+White Wine	Elastic	0.7470299	0.2533610
+
+DT
+dataset		model		RMSE		 Rsquare
+Red Wine	Tree		0.7401568	0.2261198	
+Red Wine	Tuned Tree	0.7397163	0.2309162	
+White Wine	Tree		0.7626611	0.2243408	
+White Wine	Tuned Tree	0.7475911	0.2602827
+
+RF
+dataset		model		RMSE		 Rsquare
+Red Wine	Random Forest	0.6300130	0.4334545	
+White Wine	Random Forest	0.5958836	0.5333430	
+
+dataset 	model 		RMSE 		R2
+Red Wine	KNN		0.6912366	0.3197543	
+Red Wine	KNN Tuned	0.6870681	0.3270731	
+White Wine	KNN		0.7097907	0.3386317
+White Wine	KNN Tuned	0.7052727	0.3351693			
