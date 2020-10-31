@@ -2,7 +2,9 @@
 title: "Final_Project"
 author: "R.Riddell"
 date: "17/10/2020"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -25,7 +27,7 @@ white_wine <- read_csv("winequality-white.csv")
 ```
 ## Data Structure
 There is two datasets that will be analysed by the selection of models. These datasets both relate to wine and contain 11 matching features (predictors) which will use to predict the quality (repsonse). The red wine dataset contains 1599 observations and the white wine dataset contains 4898 observations.
-```{r data structure}
+```{r data structure, include=FALSE}
 dim(red_wine)
 dim(white_wine)
 
@@ -39,7 +41,7 @@ white_wine <- clean_names(white_wine)
 
 ```
 
-```{r NA's eval=FALSE, include=FALSE}
+```{r NAs, eval=FALSE, include=FALSE}
 sum(is.na(red_wine))
 sum(is.na(white_wine))
 ```
@@ -62,7 +64,7 @@ ggplot(white_wine, aes(quality)) +
 ## Distribution Of Predictors
 When assesing the distributiono f the predictor variables with the use of histograms, there are some similarites across features. In both datasets Density and Ph have a normal distribution, while chlorides, residual sugar and alchol have a non - normal distrubtion and fixed acidity and volatile acidity are seent to be reasonably normal. When comparing the features that differ across the datasets we can see citric acid, free sulfur dioxide, total sulfur dioxide, sulphates appear as a non normal distribution in the red wine data but appear resoanble normal in the white wine data. This leads me to conclude that on the whole the white wine data set has a more normal distrubtion compared to the red wine data. When looking at possible outliers the features that appear to have outliers in both datasets are residual sugar and chlorides, while only in the red wine data does suplahe appera to have obvious outliers. 
 
-```{r eval=FALSE, include=FALSE}
+```{r, eval=FALSE, include=FALSE}
 gg_histogram <- function(data,feature){
   ggplot(data, aes(.data[[feature]])) + 
     geom_histogram(fill = 'navy') +
@@ -89,7 +91,7 @@ for (i in seq_along(numeric_vars)) {
 
 ## Scatterplots Predictors vs Reponse
 Comparing the predictors to wuality in scatterplots was somewhat challenging as the quality figure in an integer in nature, to aid with this while plotting the function geom_jitter() was used to get a better understanding on where the repsonses fall on the predictors scale. When visually assesing the linear relatioship it seems both datasets have a similar pattern on matching features. It could be said volatile acidity and alchohol have moderate linear relationship, while all other features have a poor linear relationship. This leads me to conclude that any linear modelling technique may not be appropriate on either of these datasets. 
-```{r eval=FALSE, include=FALSE}
+```{r, eval=FALSE, include=FALSE}
 ## a function to create boxplots
 gg_scatterplot <- function(data, feature){
   ggplot(data = data, aes(y = quality, x = .data[[feature]])) +
@@ -128,7 +130,7 @@ white_wine %>%
 
 ## Boxplots for predictors
 To assess the suitableability of classification models the distribution based on each level of the response varaibles vs each preditor was assesed through boxplots. This was done to assess how each predictor affects each level of the reponse varible and if the levels of the repsonse variable can be used to clearly discrimnant the quality. Through this visual assesment it seems some of the predictors show a clear difference in their median values and could be important festures when it comes to classfication prediction. Across both datasets volatile acidity, density and alcohol appear to have a consistently different median values which may mean they are able to descrimnante classes and imoprve predictions. In addition to this in the red wine data sulphates and total sulfur dioxide appear to be good predicttors, while in the white wine data chlorides and free sulfur dioxide appear to make good predictors. 
-```{r eval=FALSE, include=FALSE}
+```{r, eval=FALSE, include=FALSE}
 ## a function to create boxplots
 gg_boxplot <- function(data, feature){
   ggplot(data = data, aes(x = quality, y = .data[[feature]], group = quality)) +
@@ -156,7 +158,7 @@ for (i in seq_along(numeric_vars)) {
 
 ```
 
-```{r split data}
+```{r split data, include=FALSE}
 set.seed(345)
 
 inTrain_red <- createDataPartition(y = red_wine$quality, p = 0.8, list = F)
@@ -179,7 +181,7 @@ rm(inTrain_red, inTrain_white)
 ```
 
 
-```{r control obj}
+```{r control obj, include=FALSE}
 control_obj_regression <- trainControl(method = "cv", 
                                        number = 5)
 
@@ -198,7 +200,7 @@ control_obj_classification <- trainControl(
 
 ## Multiple Linear Regression Model (MLM)
 The data sets were intialled modelled using a standard multiple linear regression, both were then tuned to see if there was an improvement by using a stepwise linear model. The stepwise method for fitting a regression model is where each varaible is selected based on it signifincance. in relation to both wine dataset the stepwise tuning resulting in a very small increase to the adjusted R2 value. When comparing the adjusted R-sqaure values from both models we see that the linear model is better at representing the red wine data, resulting in an R-sqaure of 0.35. Where the R-sqaure value from the white wine data was 0.28. When applied to the testing data the red wine data returns an RMSE value of 0.68 and the white wine data returns 0.75. In combintaion of both the R-sqaure and RMSE values we can see the MLM is a better model for the red wine data. I dont think a linear model particularly suits either dataset as the R-sqaure values are quite low therfore suggesting the model does not represent the data well. something that could hinder the linear model is the reponse value being an interger, when the model is looking to predict it will use floats and therefore smooths out the discrmepanciey from one interger to another. It was also seen through the the scatter plots there was large amount of variance and no feature returned a visually strong correlation. 
-```{r MLM}
+```{r MLM, include=FALSE}
 library(MASS)
 set.seed(345)
 
@@ -275,7 +277,7 @@ rm(red.mlm_mdl,red.mlm_mdl.tuned.metrics,white.mlm_mdl,white.mlm_mdl.tuned.metri
 
 ## Penalised regression models 
 Both datasets contain multiple varaibles so to test how the dataset viewed non signinfnat data it was subjected to penalised regression modelling, namely Ridge, Lasso and elastic. As observerd with the MLM the red wine data is slightly better represented with a linear model, this can also be observed with the results of the linear model. After processing the data through the penalised model we can observe very similar results across the three models. Both the red and white wine data are best modelled by the Ridge regression but to see thie improvement we must go to the third decimal place. The difference between the penalised model and MLM is also very small with a slightly better RMSE, this potenatilly means that excess features is not what is affecting the original MLM and instead the data is badly represented by a linear model. 
-```{r Penalised Models}
+```{r Penalised Models,echo=FALSE, include=FALSE}
 set.seed(345)
 lambda <- 10^seq(-3,3,length=100)
 
@@ -400,14 +402,11 @@ resamples(models) %>% summary(metric="RMSE")
 rbind(red_ridge.metrics,red_lasso.metrics,red_elastic.metrics,
       white_ridge.metrics,white_lasso.metrics,white_elastic.metrics)
 
-rm(red_elastic,red_elastic.metrics,red_lasso,red_lasso.metrics,red_ridge,red_ridge.metrics,
-   white_elastic,white_elastic.metrics,white_lasso,white_lasso.metrics,white_ridge,white_ridge.metrics,
-   lambda, predictions)
 ```
 ## Decsion Tree Model
 Intially both datsets were processed using an ANOVA method which looks to minimise the variance at each node. This resulted in the red wine data creating a decsion tree of 3 features, splitting on alcohol, sulphates and volatile acidity. The white wine data created a tree split on 4 features, alcohol, free sulfur dioxide and volatile acidity. To attempt to tune the model it was subjected to multiple complexity parameters, in both cases the metrics (RMSE, R-Sqaure) were improved when the complexity paramter was increased and the decsion tree included more features. When comparing the two tuned trees on the testing data the red wine data shows an improved RMSE compared to the white wine data but the white wine data had a better R-sqaure value. As the tuned decsion trees are much more complex they could be prone overfitting and be incorrect with new data, but as we see an improvement on RMSE metrics of the trained tree when compared to the testing data I do not belive the trees are overfit. When looking at important features of the datasets teh red wine data seemed more heavlity reliant on the first three features, while the whiet wine data had a more even step down of feature imporatnce. The red wine data completly ignored the residual sugar feature while the white wine ignored the sulphates. The white wine dataset performance is very similar to the MLM model, while it seems to fit the red wine dataset worse as a R-sqaure value of 0.23 is returned compared to that of 0.34 in the MLM model. Overall the desion tree performed poorly for regression and it may be due to the large amount of value overlap we can see when looking at the boxplots in many of the variables.
 
-```{r DT}
+```{r DT, echo=FALSE, include=FALSE}
 set.seed(345)
 
 
@@ -494,7 +493,7 @@ rbind(red_tree.metrics, red_tree.tuned.metrics, white_tree.metrics, white_tree.t
 ```
 ## Random forest Model
 The random forest model found the best model fit using 6 trees at each split for the red wine dataset and 3 features at each split for the white wine. As more features were introduced into the model R-sqaured values decreased and RMSE increased. The random forest model returned the lowest RMSE and highest R-Sqaure values for both the red and white wine data. The model had a slightly better fit on the white wine data with a RMSE and R-sqaure of 0.60 and 0.53 against the red wine values that were RMSE = 0.63 and R-sqaure = 0.43. The random forest model may have performed better on the data due to its random nature being able to better understand teh overlap between feature behavour and reposnse outcome. As we saw with the scatter plots some features had very little impact on quality while some features clearly had a stronger relationship. using its many iterations the random forest was able to trial many of the less significant features and understand how those values impact the prediction. This is a signiifncat imprvemnt on the single decison tree as the single tree struggled to caputre the ovaerlal variabibilty of the data while the iterations of teh random forest are better suited at encapsualting that variability.
-```{r RF}
+```{r RF, echo=FALSE, include=FALSE}
 set.seed(345)
 gridrf <- expand.grid(.mtry = c(1:11))
 
@@ -547,7 +546,7 @@ rbind(red_rf.metrics, white_rf.metrics)
 ```
 ## K Nearest Neighbour Model
 The data for both red and white wine was intially processed with the standard knn model with no tuning parameter, when doing this the algorithm will choose a selection of values for k. Using the information from teh first model we are able to get and understaiding of what values of k are likely to create the best result. In order to ensure the model is as good as possible we are able to select values for k with teh algorithm will attempt to use and return the one that offers the best result. The red wine data chose a k of 13 and the tuning showed a steep decrease from the lower values of k until levelling out at around a k of 10. the white wine data chose a k of 16 , showing a similar pattern and levelling out at around 10. This shows the model is looking for a resonable wide set of neighbours to attempt to smooth out some of the variability in the data. Both the tuned model showed a slight improvement when compared to the testing data, with the red wine having a lower RMSE value but the wine data having a higher R-Sqaure. The KNN model performed similar with both datasets, although this model does not represent the data well with an R-sqaure of 0.32 and 0.34 on the red and white wine data respectively.
-```{r KNN} 
+```{r KNN, echo=FALSE, include=FALSE} 
 set.seed(345)
 
 red.knn_mdl <-  train(quality~ ., data = red_training, method = "knn",
@@ -625,13 +624,18 @@ models <- list(red.knn_mdl=red.knn_mdl, red.knn_mdl.tuned = red.knn_mdl.tuned,
                white.knn_mdl=white.knn_mdl, white.knn_mdl.tuned = white.knn_mdl.tuned)
 resamples(models) %>% summary(metric="RMSE")
 ```
+## Regression comparsion
+To compare the performance of all models the RMSE and Rsqaured values have been compared and plotted figure ... Generally all models performed better on the red wine data. The modelling technique that performed best on both the white wine and red wine data was the random forest model. This is due to the lack of gernal normality to the original data and teh random forest was best able to capurture teh varaiabebilty and overalp of the features in the data. In general the white wine data obtaibed nmore simialr results through the cross validation and therefore gave more consistent results. This may be due to the data set being larger so was less influenced by individual observations, while the red wine had a smaller data set so could have been more skewed by less observations. The main drawback of the random forest model was the increased computational time, I found to be be roughly 5 times as long as other models. In this instance this was not concerneing as the datasets are reasoanbly small so the extra time was only minutes and the increrase in Rsqaure and decrease in RMSE values easily outweighs the extra computing time. If the data was signifinctly bigger for instance 500,000 then the random forest may deter me from using it intially as the computationtime may be excessive, I would first try Elastic, Lasso and Ridge models and seek to understand the variable and potentailly remove features before trying random forest.
 
-
-```{r regression models} 
+```{r regression models, echo=FALSE, include=FALSE} 
 resampls <- resamples(list(Red_MLM = red.mlm_mdl.tuned,
                            White_MLM = white.mlm_mdl.tuned,
                            Red_Ridge = red_ridge,
                            White_ridge = white_ridge,
+                           Red_Elastic = red_elastic,
+                           White_Elastic = white_elastic,
+                           Red_Lasso = red_lasso,
+                           white_Lasso = white_lasso,
                            red_tree = red_tree.tuned,
                            white_tree = white_tree.tuned,
                            red_rf = red.rf_mdl,
@@ -648,7 +652,8 @@ gridExtra::grid.arrange(bwplot(resampls, metric = 'RMSE'),
 
 # Classification Models
 ## Split Data For Classification
-```{r RF Classification}
+The quality feature in both datasets was transformed to a factor so could be used as a classfication taregt instead of a regression prediction. The data was the split 80/20 with the quality feature set as the target. Both datasets are reasonabely imbalanced in relation to the number of each observations at each quality. In the red wine data 83% of the data is from observations that are a 5 or 6 in quality, with 12% being a 7, with the remaining 5% coming from 3,4 and 5. The whiet wine data is more normally distributed responses and is represented by 93% of observations coming from qualities 5,6 and 7, and the other 7% coming from 3,4,8 and 9. This indicates to me the observations that appear rarely in the data may be difficult to predict, for instance the white wine data has 4 observations rated as a 9 which only represents ~0.1% of teh training data. This means the model will so infreqneylt see this observations itmay be unlcikt to have enough informtion to make a correct prediction. This means on both datasets the predictions around qualities 5,6 and 7 are more likely to be made. This may potentailly lead to correct predictions being made by chance as these obserations are over represented and observations that have a high or low qulaity being incorrectly classified as a 5,6 or 7. 
+```{r Classification split, echo=FALSE, include=FALSE}
 set.seed(345)
 
 red_wine$quality <- as.factor(red_wine$quality)
@@ -687,45 +692,60 @@ white_c_training <-  white_wine %>%
 white_c_testing <-  white_wine %>% 
   slice(-inTrain_white)
 
-```
-
-## Random Forest Model
-```{r RF Classification}
-set.seed(345)
-
 red_c_training %>% 
   group_by(quality) %>% 
-  count()
+  count() %>% 
+  mutate(percent = n/length(red_c_training$quality))
 
 white_c_training %>% 
   group_by(quality) %>% 
-  count()
+  count() %>% 
+  mutate(percent = n/length(white_c_training$quality))
+
+
+
+```
+
+## Random Forest Model
+Both data sets were modelled using a random forest for classification with quality being the target feature. Using the random forest models in built . As seen in the tuning plot when ther is an increase in randomly selected variables the overall accucarcy decreses thsi results in the best mode being produced with mtry = 1. From the varibale imprtance we can gain an understanding on how each class is impacted from the features, with the features having a significantly highler level of importsance in the observations that appeared more frequently in the dataset. When viewing the confusion matrix we can see that the average model accucarcy was 68% in the red wine data abd 66% in the white wine data. 
+
+When looking at individual obsrevations and their prediction rate of the red wine data we see that the model never predicted a wine to have a quality of a 3 or 4, all the 3 and 4 observations were prediected to be either a 5,6 or 7. This shows that the model was unable to undersatnd these observations as they had such a small representation in the data. The model was able to correctly predict the quality 5 and 6 observations 33.9% and 29.1% of the time. While the quality 7 was correctly predicted 5.1% and the 8 predicted rarely correctly at 0.2%. The majority of misclassifcations occured when the model predicted some observations were a 5 or 6, with 12.4% of the observations incorrectly predicted to be a 5 and 17.3% predicted to be a 6. There was also a 1.8% of observations incorrectly predicted to be a 7. Generally the misclassficiation predictions were incorrect by one unit of wuality but there were sitautions the model predticed a 3 to be a 6 or 7 predicted as a 5. 
+
+In the whiet wine data confusion matrci we see a similar pattern with the model never predicting a 3 or 9 in the white wine data, with these observations being predicted as a 5 or 6. the model was able to best predict the wine quaklity of 5,6 and 7 with it getting these correct 20.3%, 36% and 8.4% respectivly. The observations of 4 and 8 were rarely predicted correctly at 0.3% and 1.5% of the time, with some misclassfications of 4's being predicted of 5 or 7's predicted as 8's. The majority of the misclassifcation occured in the when the model incorrecly predicted observatiosn to be 6's which occured 21.1% of the time and these misclassfications came from all other values. The 5 and 7 were also incorrectly predicted on average 8.3% and 3.8% repsectivly.
+
+As seen from both dataset the model was most accucatre on the observations that were most prevalanat in the data and accucarcy decresed in line with teh overall represenation of the observations. This shows the model could have been distinguising some characteristics from each of the values of quality but there is also a chance it was able to obtain a higher prediction rate as it was able to correctly predict in the class that had more observations and therfore make correct predictions by chance. 
+```{r RF Classification,echo=FALSE, include=FALSE}
+set.seed(345)
+
+gridrf <- expand.grid(.mtry = c(1:11))
 
 
 red_rf_mdl.C <- train(quality ~ . ,
-                 data = red_training,
+                 data = red_c_training,
                  method = "rf",
                  trControl = control_obj_classification,
-                 #tuneGrid = tune,
-                 importance = TRUE, 
+                 importance = TRUE,
+                 tuneGrid = gridrf)
 
-                 )
+
+                 
 plot(red_rf_mdl.C)
 plot(varImp(red_rf_mdl.C))
 
 
 confusionMatrix(data = red_rf_mdl.C,
-                reference = red_c_testing$quality)
+                  reference = red_c_testing$quality)
 
 
 white_rf_mdl.C <- train(quality ~ . ,
-                 data = white_training,
+                 data = white_c_training,
                  method = "rf",
                  trControl = control_obj_classification,
-                 #tuneGrid = tune,
-                 importance = TRUE, 
-                 )
+                 importance = TRUE,
+                 tuneGrid = gridrf)
+
 plot(white_rf_mdl.C)
+
 plot(varImp(white_rf_mdl.C))
 
 confusionMatrix(data = white_rf_mdl.C,
@@ -735,7 +755,15 @@ confusionMatrix(data = white_rf_mdl.C,
 ```
 
 ## Boosted Model
-```{r Boosted}
+Using the inbuilt tuningt of the xgbTree model the data was subjected to multiple ets, mac_depth, colsample_bytree, subsample and number of round values. The final values used for the red wine data was nrounds = 150, max_depth = 3, eta = 0.3, gamma = 0, colsample_bytree = 0.8, min_child_weight = 1 and subsample = 1. While the selected model for the white wine data was The final values used for the model were nrounds = 150, max_depth = 3, eta = 0.4, gamma = 0, colsample_bytree = 0.8, min_child_weight = 1 and subsample = 0.75. With the only change between the two models being the eta and subsample. In the boosted mdoel we can see the red wine data returned an average 66% accucarcy and 61% in the white wine data. 
+
+To assess the accucarcy across each class for the model we can analyse the confusion matrix. when the model was applied to teh red wine data we see that a qualioty of 3 was never predicted and a qualities of 4 and 8 were rarely predicted. The majority of accucarate observations were predicted on qualties 5 an 6, with these classes also holding the majority of missclassifications. The model was also able to accucractely predict the wine with a quality of 7 around 6.3% of the time.
+
+From the results when the model was applied to the white wine data we can see the model never predicted a quality of 3 or 9 and rarely predicted a quality of 4 and 8. The majority of predictions were made in the classes 5,6 and 7 with a high proportion of these predictions being correct than incorrect. In class 5 the model was accucarate on average 18.5% of the time but also incorrectly predicted 11% of the total observations to be class 5. There was a similar pattern in classes 5/6 with 32.1%/8.6% of observations correctly predicted and 20.1%/6.1% being incorrectly predicted.
+
+The accuacrly in classes the central classes could be a relflction that these classes are more represented in the data so the model may have more infomtioning on these classes and can better discrimnate them from others. There is also a posibility that the model is able to make accuratre predictions based on chance as when it predicts a class that has a large number of observations it is more likely to be correct. When we look at these highly represented classes and the correct vs incorrect prediction rate teh model is makes more correct predictions than incorrect predictions. This I belive shows that both circumsatnces are oiccuring that the model can make accuacte predictiosn by chance but also has a good understanding of what discromninates these classes so can make accuarte predictions on purpose. If we were seeing higher rates of incorroct predictions in the highly populated class I would think that the correct predictions are being made more by chance than model understanding data. 
+
+```{r Boosted, echo=FALSE, include=FALSE}
 set.seed(345)
 
 red_gbtree <- train(quality ~.,
@@ -743,10 +771,10 @@ red_gbtree <- train(quality ~.,
                 method = "xgbTree",
                 trControl = control_obj_classification)
 
-
+plot(red_gbtree)
 plot(varImp(red_gbtree))
 
-confusionMatrix(data = gbtree,
+confusionMatrix(data = red_gbtree,
                 reference = red_c_testing$quality)
 
 
@@ -755,12 +783,17 @@ white_gbtree <- train(quality ~.,
                 method = "xgbTree",
                 trControl = control_obj_classification)
 
-
+plot(white_gbtree)
 plot(varImp(white_gbtree))
 
 confusionMatrix(data = white_gbtree,
                 reference = white_c_testing$quality)
 
-plot(red_gbtree)
 ```
 
+## Classification Comparison
+When comparing the classification models the randon forest was more accuarte across both datasets with 68% and 66% compared to 66% and 61%. The random forest model had a higher prediction accuracy on the classes that had more observations in the data. While the boosted model was more likely to make a prediction on either end of the quality scale but also made more misclassifications in the central classes. This could be due to the boosted model utilsiing a max depth of 3 while the random forest was using only 1 feature in each tree. This would give the boosted model a higher level of insight into the data so it was more likely to make predictions on classes that were at either end of the spectrum. This increrased depth also made it more difficult for the model to make accuarte predictions on the classes that had a high number of observations as it was harder to distinguish the overlap in multiple features for these classes. While in the random forest model using only 1 feature it was better informed about the central classes by the features that were more signinfcant such as alcohol and the overlap was less impactful so the class could be more accuarately distinguished. Depending on what the purpose of prediction and amount of time available may influnce which model is better to use. If you are just looking for the more accuacrte model theni belive it to be the random forest, but if you want to have more accuracte predictions on the high and low classes the boosted model may be a better alternative. The boosted model was faster computaionally and could be used first to try to better understand the data and if some features prove to be insigniifnact they could be removed before applying a random forest to the data to improve compuational time. 
+
+
+
+## Conclusion
